@@ -138,6 +138,7 @@ INTERNTASK/
 │ └── venv/ # Virtual environment
 │
 ├── frontend/
+|──data-dashboard
 │ ├── public/
 │ ├── src/
 │ │ ├── components/

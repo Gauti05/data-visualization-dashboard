@@ -417,3 +417,44 @@ async def rename_dataset(dataset_id: str, rename: DatasetRename, current_user: d
     else:
         raise HTTPException(status_code=404, detail="Dataset not found or not authorized")
 
+
+class EmailUpdate(BaseModel):
+    email: str
+
+@app.put("/me")
+async def update_email(data: EmailUpdate, current_user: dict = Depends(get_current_user)):
+    """Update user email"""
+    current_email = current_user["email"]
+    new_email = data.email
+    
+ 
+    if new_email == current_email:
+        raise HTTPException(status_code=400, detail="New email is same as current email")
+    
+   
+    existing_user = await users_collection.find_one({"email": new_email})
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email already in use by another account")
+    
+ 
+    result = await users_collection.update_one(
+        {"email": current_email}, 
+        {"$set": {"email": new_email}}
+    )
+    
+    if result.modified_count == 1:
+        
+        await datasets_collection.update_many(
+            {"user_email": current_email},
+            {"$set": {"user_email": new_email}}
+        )
+        
+       
+        new_token = jwt.encode({"sub": new_email}, SECRET_KEY, algorithm=ALGORITHM)
+        
+        return {
+            "message": "Email updated successfully",
+            "new_token": new_token
+        }
+    else:
+        raise HTTPException(status_code=400, detail="Failed to update email")
